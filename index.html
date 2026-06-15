@@ -23,6 +23,8 @@ body{
     font-size:18px;
 }
 
+body.big{ font-size:24px; }
+
 h1{text-align:center;}
 
 .toolbar{
@@ -45,6 +47,7 @@ button{
 .btn-enemy{background:#8b2f2f;color:white;}
 .btn-next{background:#1565c0;color:white;}
 .btn-reset{background:#b71c1c;color:white;}
+.btn-ui{background:#444;color:white;}
 
 table{
     width:100%;
@@ -58,13 +61,17 @@ th{
     text-align:left;
 }
 
-td{
-    padding:10px;
-    border-top:1px solid #444;
+tr{
+    cursor:grab;
 }
 
 tr.dragging{
     opacity:0.5;
+}
+
+td{
+    padding:10px;
+    border-top:1px solid #444;
 }
 
 .pc{background:#234f8c;}
@@ -103,30 +110,6 @@ tr.dragging{
     margin-left:auto;
 }
 
-/* 🧲 HANDLE DRAG */
-.handle{
-    cursor:grab;
-    padding:4px 8px;
-    user-select:none;
-    font-size:18px;
-    opacity:0.7;
-}
-
-.handle:active{
-    cursor:grabbing;
-    opacity:1;
-}
-
-.deleteBtn{
-    margin-left:10px;
-    background:#b71c1c;
-    color:white;
-    border:none;
-    padding:4px 8px;
-    border-radius:6px;
-    cursor:pointer;
-}
-
 .hpbar{
     height:6px;
     width:70px;
@@ -138,6 +121,16 @@ tr.dragging{
 .hpfill{
     height:100%;
     background:#3ddc6b;
+}
+
+.deleteBtn{
+    margin-left:10px;
+    background:#b71c1c;
+    color:white;
+    border:none;
+    padding:4px 8px;
+    border-radius:6px;
+    cursor:pointer;
 }
 
 </style>
@@ -168,7 +161,6 @@ onchange="save()">
 <table>
 <thead>
 <tr>
-<th>Drag</th>
 <th>Nombre</th>
 <th>Info</th>
 </tr>
@@ -190,6 +182,7 @@ function save(){
     localStorage.setItem("it_round",document.getElementById("round").value);
 }
 
+/* SORT por iniciativa */
 function sorted(){
     return [...data].sort((a,b)=>b.init-a.init);
 }
@@ -208,12 +201,9 @@ function render(){
     for(let c of list){
 
         body.innerHTML += `
-<tr class="${c.type} ${c.id===activeId?'active':''}"
-data-id="${c.id}">
-
-<td>
-<div class="handle" draggable="true">⋮⋮</div>
-</td>
+<tr draggable="true"
+data-id="${c.id}"
+class="${c.type} ${c.id===activeId?'active':''}">
 
 <td>
 <input class="edit"
@@ -226,20 +216,20 @@ onchange="edit('${c.id}','name',this.value)">
 <div class="leftInfo">
 
 🛡 <input class="edit" style="width:40px"
-value="${c.ac||10}"
+value="${c.ac}"
 onchange="edit('${c.id}','ac',this.value)">
 
 ❤️ <input class="edit" style="width:40px"
-value="${c.hp||10}"
+value="${c.hp}"
 onchange="edit('${c.id}','hp',this.value)">
 
 / <input class="edit" style="width:40px"
-value="${c.maxhp||10}"
+value="${c.maxhp}"
 onchange="edit('${c.id}','maxhp',this.value)">
 
 <div class="hpbar">
 <div class="hpfill"
-style="width:${((c.hp||0)/(c.maxhp||1))*100}%"></div>
+style="width:${(c.hp/c.maxhp)*100}%"></div>
 </div>
 
 </div>
@@ -247,7 +237,7 @@ style="width:${((c.hp||0)/(c.maxhp||1))*100}%"></div>
 <div class="rightInfo">
 
 🪽 <input class="edit" style="width:50px;text-align:right"
-value="${c.init||0}"
+value="${c.init}"
 onchange="edit('${c.id}','init',this.value)">
 </div>
 
@@ -320,31 +310,30 @@ localStorage.clear();
 render();
 }
 
-/* DRAG ONLY FROM HANDLE */
+/* DRAG & DROP */
 function addDragEvents(){
 
-const handles=document.querySelectorAll(".handle");
+const rows=document.querySelectorAll("tr[draggable=true]");
 
-handles.forEach(handle=>{
+rows.forEach(row=>{
 
-handle.addEventListener("dragstart",e=>{
-dragId=handle.closest("tr").dataset.id;
-handle.closest("tr").classList.add("dragging");
+row.addEventListener("dragstart",e=>{
+dragId=row.dataset.id;
+row.classList.add("dragging");
 });
 
-handle.addEventListener("dragend",e=>{
-handle.closest("tr").classList.remove("dragging");
+row.addEventListener("dragend",e=>{
+row.classList.remove("dragging");
 dragId=null;
 save();
 });
 
-handle.addEventListener("dragover",e=>{
+row.addEventListener("dragover",e=>{
 e.preventDefault();
 
-const targetRow=handle.closest("tr");
-const targetId=targetRow.dataset.id;
+const targetId=row.dataset.id;
 
-if(!dragId || dragId===targetId) return;
+if(dragId===targetId) return;
 
 const fromIndex=data.findIndex(x=>x.id===dragId);
 const toIndex=data.findIndex(x=>x.id===targetId);
