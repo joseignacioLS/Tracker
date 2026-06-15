@@ -23,8 +23,6 @@ body{
     font-size:18px;
 }
 
-body.big{ font-size:24px; }
-
 h1{ text-align:center; }
 
 .toolbar{
@@ -47,7 +45,6 @@ button{
 .btn-enemy{background:#8b2f2f;color:white;}
 .btn-next{background:#1565c0;color:white;}
 .btn-reset{background:#b71c1c;color:white;}
-.btn-ui{background:#444;color:white;}
 
 table{
     width:100%;
@@ -119,7 +116,7 @@ td{
     background:#3ddc6b;
 }
 
-/* ⚔ botones daño */
+/* botones daño */
 .hpControls{
     display:flex;
     gap:4px;
@@ -150,13 +147,41 @@ td{
     cursor:pointer;
 }
 
-/* ☠ muertos */
+/* muertos */
 .dead{
-    opacity:0.6;
-    filter:grayscale(0.8);
+    opacity:0.5;
+    filter:grayscale(1);
 }
 
-/* ✨ turno animación */
+/* condiciones */
+.condBox{
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    align-items:center;
+    margin-left:6px;
+}
+
+.condTag{
+    background:#555;
+    padding:2px 6px;
+    border-radius:6px;
+    font-size:12px;
+    cursor:pointer;
+    user-select:none;
+}
+
+.condAddBtn{
+    background:#444;
+    border:none;
+    color:white;
+    padding:2px 6px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:12px;
+}
+
+/* turno animación */
 @keyframes turnFlash {
     0% { box-shadow:0 0 0 rgba(212,175,55,0); }
     50% { box-shadow:0 0 25px rgba(212,175,55,0.9); }
@@ -165,49 +190,6 @@ td{
 
 .turnFlash{
     animation: turnFlash 0.6s ease;
-}
-
-/* 📱 móvil vertical fix */
-@media (max-width:768px) and (orientation: portrait){
-
-    .info{
-        flex-direction:row;
-        justify-content:space-between;
-        align-items:center;
-        gap:5px;
-    }
-
-    .leftInfo{
-        flex-wrap:nowrap;
-        gap:4px;
-    }
-
-    .edit{
-        width:45px;
-        font-size:14px;
-    }
-
-    .hpbar{
-        width:60px;
-    }
-
-    td{
-        padding:6px 8px;
-    }
-
-    tr{
-        display:flex;
-        align-items:center;
-    }
-
-    td:first-child{flex:1;}
-    td:last-child{flex:4;}
-}
-
-/* ☠ mejora visual extra */
-.dead{
-    opacity:0.5;
-    filter:grayscale(1);
 }
 
 </style>
@@ -302,7 +284,7 @@ onchange="edit('${c.id}','hp',this.value)">
 value="${c.maxhp}"
 onchange="edit('${c.id}','maxhp',this.value)">
 
-${isDead ? `<span>☠</span>` : ``}
+${isDead ? "☠" : ""}
 
 <div class="hpControls">
 
@@ -319,13 +301,30 @@ onclick="damage('${c.id}',1)">+1</button>
 style="width:${(c.hp/c.maxhp)*100}%"></div>
 </div>
 
+<!-- CONDICIONES -->
+<div class="condBox">
+
+${(c.conditions || []).map((cond, idx)=>`
+    <span class="condTag"
+    onclick="removeCond('${c.id}',${idx})">
+        ${cond} ✖
+    </span>
+`).join("")}
+
+<button class="condAddBtn"
+onclick="addCond('${c.id}')">+ estado</button>
+
+</div>
+
 </div>
 
 <div class="rightInfo">
 
-🪽 <input class="edit" style="width:50px;text-align:right"
+🪽 <input class="edit"
+style="width:50px;text-align:right"
 value="${c.init}"
-onchange="edit('${c.id}','init',this.value)">
+onchange="edit('${c.id}','init',this.value)}">
+
 </div>
 
 <button class="deleteBtn" onclick="del('${c.id}')">❌</button>
@@ -343,6 +342,30 @@ function damage(id,val){
     if(!c) return;
 
     c.hp += val;
+
+    render();
+}
+
+/* CONDICIONES */
+function addCond(id){
+    let c = data.find(x=>x.id===id);
+    if(!c) return;
+
+    let cond = prompt("Condición en español:");
+    if(!cond) return;
+
+    if(!c.conditions) c.conditions = [];
+
+    c.conditions.push(cond);
+
+    render();
+}
+
+function removeCond(id,index){
+    let c = data.find(x=>x.id===id);
+    if(!c || !c.conditions) return;
+
+    c.conditions.splice(index,1);
 
     render();
 }
