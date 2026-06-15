@@ -86,7 +86,7 @@ td{
     text-align:center;
 }
 
-/* layout PC */
+/* layout */
 .info{
     display:flex;
     justify-content:space-between;
@@ -119,6 +119,27 @@ td{
     background:#3ddc6b;
 }
 
+/* ⚔ botones daño */
+.hpControls{
+    display:flex;
+    gap:4px;
+    align-items:center;
+    margin-left:6px;
+}
+
+.hpBtn{
+    width:26px;
+    height:26px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+    color:white;
+}
+
+.hpMinus{ background:#b71c1c; }
+.hpPlus{ background:#2e7d32; }
+
 .deleteBtn{
     margin-left:10px;
     background:#b71c1c;
@@ -129,71 +150,64 @@ td{
     cursor:pointer;
 }
 
-.cond{
-    background:#555;
-    padding:2px 6px;
-    border-radius:6px;
-    font-size:0.8em;
-    cursor:pointer;
+/* ☠ muertos */
+.dead{
+    opacity:0.6;
+    filter:grayscale(0.8);
 }
 
-/* 🔥 MOBILE: modo tarjetas */
-@media (max-width: 768px){
+/* ✨ turno animación */
+@keyframes turnFlash {
+    0% { box-shadow:0 0 0 rgba(212,175,55,0); }
+    50% { box-shadow:0 0 25px rgba(212,175,55,0.9); }
+    100% { box-shadow:0 0 0 rgba(212,175,55,0); }
+}
 
-    body{
-        padding:10px;
-        font-size:16px;
-    }
+.turnFlash{
+    animation: turnFlash 0.6s ease;
+}
 
-    table{
-        display:block;
-        overflow-x:hidden;
-    }
-
-    tr{
-        display:block;
-        background:#2a2a2a;
-        margin-bottom:10px;
-        border-radius:10px;
-        padding:10px;
-    }
-
-    td{
-        display:block;
-        border:none;
-        padding:6px 0;
-    }
+/* 📱 móvil vertical fix */
+@media (max-width:768px) and (orientation: portrait){
 
     .info{
-        display:block;
+        flex-direction:row;
+        justify-content:space-between;
+        align-items:center;
+        gap:5px;
     }
 
     .leftInfo{
-        display:flex;
-        justify-content:space-between;
-        flex-wrap:wrap;
-        gap:6px;
-    }
-
-    .rightInfo{
-        text-align:right;
-        margin-top:8px;
-    }
-
-    .hpbar{
-        width:100%;
-        margin-top:6px;
+        flex-wrap:nowrap;
+        gap:4px;
     }
 
     .edit{
-        font-size:16px;
+        width:45px;
+        font-size:14px;
+    }
+
+    .hpbar{
         width:60px;
     }
 
-    .deleteBtn{
-        width:100%;
-        margin-top:10px;
+    td{
+        padding:6px 8px;
     }
+
+    tr{
+        display:flex;
+        align-items:center;
+    }
+
+    td:first-child{flex:1;}
+    td:last-child{flex:4;}
+}
+
+/* ☠ mejora visual extra */
+.dead{
+    opacity:0.5;
+    filter:grayscale(1);
 }
 
 </style>
@@ -211,7 +225,6 @@ td{
 
 <button class="btn-next" onclick="nextTurn()">⏭ Turno</button>
 <button class="btn-reset" onclick="resetAll()">🗑 Reset</button>
-<button class="btn-ui" onclick="toggleBig()">🖥 Pantalla</button>
 
 </div>
 
@@ -238,16 +251,19 @@ onchange="save()">
 let data = JSON.parse(localStorage.getItem("it_data")) || [];
 let activeId = localStorage.getItem("it_active") || null;
 
+/* SAVE */
 function save(){
     localStorage.setItem("it_data",JSON.stringify(data));
     localStorage.setItem("it_active",activeId);
     localStorage.setItem("it_round",document.getElementById("round").value);
 }
 
+/* SORT */
 function sorted(){
     return [...data].sort((a,b)=>b.init-a.init);
 }
 
+/* RENDER */
 function render(){
 
     document.getElementById("round").value =
@@ -260,10 +276,10 @@ function render(){
 
     for(let c of list){
 
-        if(!c.conditions) c.conditions=[];
+        let isDead = c.hp <= 0;
 
         body.innerHTML += `
-<tr class="${c.type} ${c.id===activeId?'active':''}">
+<tr class="${c.type} ${c.id===activeId?'active':''} ${isDead?'dead':''}">
 <td>
 <input class="edit"
 value="${c.name}"
@@ -286,6 +302,18 @@ onchange="edit('${c.id}','hp',this.value)">
 value="${c.maxhp}"
 onchange="edit('${c.id}','maxhp',this.value)">
 
+${isDead ? `<span>☠</span>` : ``}
+
+<div class="hpControls">
+
+<button class="hpBtn hpMinus"
+onclick="damage('${c.id}',-1)">-1</button>
+
+<button class="hpBtn hpPlus"
+onclick="damage('${c.id}',1)">+1</button>
+
+</div>
+
 <div class="hpbar">
 <div class="hpfill"
 style="width:${(c.hp/c.maxhp)*100}%"></div>
@@ -298,7 +326,6 @@ style="width:${(c.hp/c.maxhp)*100}%"></div>
 🪽 <input class="edit" style="width:50px;text-align:right"
 value="${c.init}"
 onchange="edit('${c.id}','init',this.value)">
-
 </div>
 
 <button class="deleteBtn" onclick="del('${c.id}')">❌</button>
@@ -310,6 +337,17 @@ onchange="edit('${c.id}','init',this.value)">
     save();
 }
 
+/* DAMAGE (PERMITE VIDA NEGATIVA) */
+function damage(id,val){
+    let c = data.find(x=>x.id===id);
+    if(!c) return;
+
+    c.hp += val;
+
+    render();
+}
+
+/* ADD */
 function add(type){
 
 let name=prompt("Nombre:");
@@ -329,12 +367,14 @@ conditions:[]
 render();
 }
 
+/* EDIT */
 function edit(id,f,v){
 let c=data.find(x=>x.id===id);
 c[f]=f==="name"?v:+v;
 render();
 }
 
+/* TURN */
 function nextTurn(){
 
 let list=sorted();
@@ -349,15 +389,27 @@ document.getElementById("round").value++;
 }
 
 activeId=list[i].id;
+
+/* animación */
+setTimeout(()=>{
+let row=document.querySelector("tr.active");
+if(row){
+row.classList.add("turnFlash");
+setTimeout(()=>row.classList.remove("turnFlash"),600);
+}
+},10);
+
 render();
 }
 
+/* DELETE */
 function del(id){
 if(!confirm("Eliminar?"))return;
 data=data.filter(x=>x.id!==id);
 render();
 }
 
+/* RESET */
 function resetAll(){
 if(!confirm("Borrar todo?"))return;
 if(!confirm("Última confirmación"))return;
@@ -367,6 +419,7 @@ localStorage.clear();
 render();
 }
 
+/* KEYBOARD */
 document.addEventListener("keydown",e=>{
 if(e.code==="Space"){
 e.preventDefault();
