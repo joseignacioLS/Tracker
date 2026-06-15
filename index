@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestor de Combate</title>
+
+<style>
+
+:root{
+    --bg:#1b1b1b;
+    --panel:#2a2a2a;
+    --text:#fff;
+    --gold:#d4af37;
+}
+
+body{
+    margin:0;
+    padding:20px;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Segoe UI, Arial, sans-serif;
+    font-size:18px;
+}
+
+body.big{
+    font-size:24px;
+}
+
+h1{
+    text-align:center;
+}
+
+.toolbar{
+    display:flex;
+    justify-content:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+}
+
+button{
+    border:none;
+    padding:10px 14px;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+.btn-pc{ background:#234f8c; color:#fff; }
+.btn-npc{ background:#2f6f45; color:#fff; }
+.btn-enemy{ background:#8b2f2f; color:#fff; }
+.btn-next{ background:#1565c0; color:#fff; }
+.btn-reset{ background:#b71c1c; color:#fff; }
+.btn-ui{ background:#444; color:#fff; }
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--panel);
+}
+
+th{
+    background:#111;
+    padding:12px;
+    text-align:left;
+}
+
+td{
+    padding:10px;
+    border-top:1px solid #444;
+}
+
+.pc{ background:#234f8c; }
+.npc{ background:#2f6f45; }
+.enemy{ background:#8b2f2f; }
+
+.active{
+    outline:6px solid var(--gold);
+    outline-offset:-3px;
+    box-shadow:0 0 15px rgba(212,175,55,.8);
+}
+
+.edit{
+    background:transparent;
+    border:none;
+    color:white;
+    outline:none;
+    font-size:inherit;
+}
+
+.info{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.leftInfo{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+}
+
+.rightInfo{
+    margin-left:auto;
+    font-weight:bold;
+    display:flex;
+    gap:6px;
+}
+
+.hpbar{
+    height:6px;
+    width:70px;
+    background:#333;
+    border-radius:4px;
+    overflow:hidden;
+}
+
+.hpfill{
+    height:100%;
+    background:#3ddc6b;
+}
+
+.deleteBtn{
+    margin-left:10px;
+    background:#b71c1c;
+    color:white;
+    border:none;
+    padding:4px 8px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.cond{
+    background:#555;
+    padding:2px 6px;
+    border-radius:6px;
+    font-size:0.8em;
+    cursor:pointer;
+}
+
+.soundBtn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:#222;
+    color:white;
+    border:2px solid #666;
+    padding:10px 14px;
+    border-radius:12px;
+    cursor:pointer;
+    z-index:999;
+}
+
+.soundBtn.on{
+    border-color:#3ddc6b;
+    color:#3ddc6b;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>⚔ Gestor de Combate</h1>
+
+<div class="toolbar">
+
+<button class="btn-pc" onclick="add('pc')">➕ PJ</button>
+<button class="btn-npc" onclick="add('npc')">➕ NPC</button>
+<button class="btn-enemy" onclick="add('enemy')">➕ Enemigo</button>
+
+<button class="btn-next" onclick="nextTurn()">⏭ Turno</button>
+<button class="btn-reset" onclick="resetAll()">🗑 Reset</button>
+<button class="btn-ui" onclick="toggleBig()">🖥 Pantalla</button>
+
+</div>
+
+<div style="text-align:center;margin-bottom:10px;">
+Ronda:
+<input id="round" type="number" style="width:70px;text-align:center"
+onchange="saveState()">
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Información</th>
+</tr>
+</thead>
+
+<tbody id="body"></tbody>
+
+</table>
+
+<!-- BOTÓN SONIDO -->
+<button id="soundBtn" class="soundBtn on" onclick="toggleSound()">
+🔊 Sonido ON
+</button>
+
+<script>
+
+let data = JSON.parse(localStorage.getItem("it_data")) || [];
+let activeId = localStorage.getItem("it_active") || null;
+let soundOn = JSON.parse(localStorage.getItem("it_sound")) ?? true;
+
+const CONDITIONS = [
+"Aturdido","Envenenado","Caído","Asustado",
+"Cegado","Paralizado","Agarrado","Inconsciente"
+];
+
+function saveState(){
+    localStorage.setItem("it_data", JSON.stringify(data));
+    localStorage.setItem("it_active", activeId);
+    localStorage.setItem("it_round", document.getElementById("round").value);
+    localStorage.setItem("it_sound", soundOn);
+}
+
+/* 🔊 sonido */
+function playTurnSound(){
+
+    if(!soundOn) return;
+
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.value = 880;
+    gain.gain.value = 0.08;
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
+}
+
+function getSorted(){
+    return [...data].sort((a,b)=>b.init-a.init);
+}
+
+function render(){
+
+    document.getElementById("round").value =
+        localStorage.getItem("it_round") || 1;
+
+    const body = document.getElementById("body");
+    body.innerHTML = "";
+
+    let list = getSorted();
+
+    for(let c of list){
+
+        if(!c.conditions) c.conditions=[];
+
+        const tr = document.createElement("tr");
+
+        tr.className =
+            `${c.type} ${c.id===activeId?"active":""}`;
+
+        tr.innerHTML = `
+
+        <td>
+            <input class="edit"
+            value="${c.name}"
+            onchange="edit('${c.id}','name',this.value)">
+        </td>
+
+        <td class="info">
+
+            <div class="leftInfo">
+
+                🛡 <input class="edit" style="width:45px"
+                value="${c.ac}"
+                onchange="edit('${c.id}','ac',this.value)">
+
+                ❤️ <input class="edit" style="width:40px"
+                value="${c.hp}"
+                onchange="edit('${c.id}','hp',this.value)">
+
+                /
+
+                <input class="edit" style="width:40px"
+                value="${c.maxhp}"
+                onchange="edit('${c.id}','maxhp',this.value)">
+
+                <div class="hpbar">
+                    <div class="hpfill"
+                    style="width:${(c.hp/c.maxhp)*100}%"></div>
+                </div>
+
+                ${c.conditions.map(cond=>
+                    `<span class="cond"
+                    onclick="removeCond('${c.id}','${cond}')">
+                    ${cond}
+                    </span>`
+                ).join("")}
+
+                <select onchange="addCond('${c.id}',this.value)">
+                    <option>Condición</option>
+                    ${CONDITIONS.map(x=>
+                        `<option value="${x}">${x}</option>`
+                    ).join("")}
+                </select>
+
+            </div>
+
+            <div class="rightInfo">
+
+                🪽 <input class="edit"
+                style="width:55px;text-align:right"
+                value="${c.init}"
+                onchange="edit('${c.id}','init',this.value)">
+            </div>
+
+            <button class="deleteBtn"
+            onclick="del('${c.id}')">❌</button>
+
+        </td>
+        `;
+
+        body.appendChild(tr);
+    }
+
+    updateSoundBtn();
+    saveState();
+}
+
+function edit(id,field,value){
+    let c = data.find(x=>x.id===id);
+    c[field]= field==="name"?value:Number(value);
+    render();
+}
+
+function add(type){
+
+    const name = prompt("Nombre:");
+    if(!name) return;
+
+    data.push({
+        id:crypto.randomUUID(),
+        type,
+        name,
+        init:+prompt("Iniciativa:",0),
+        ac:+prompt("CA:",10),
+        hp:+prompt("Vida:",10),
+        maxhp:+prompt("Vida máxima:",10),
+        conditions:[]
+    });
+
+    render();
+}
+
+/* condiciones */
+function addCond(id,val){
+    let c=data.find(x=>x.id===id);
+    if(val && !c.conditions.includes(val)){
+        c.conditions.push(val);
+    }
+    render();
+}
+
+function removeCond(id,val){
+    let c=data.find(x=>x.id===id);
+    c.conditions=c.conditions.filter(x=>x!==val);
+    render();
+}
+
+/* TURNOS */
+function nextTurn(){
+
+    let list=getSorted();
+    if(list.length===0) return;
+
+    let currentIndex=list.findIndex(x=>x.id===activeId);
+
+    if(currentIndex===-1){
+        activeId=list[0].id;
+        playTurnSound();
+        render();
+        return;
+    }
+
+    currentIndex++;
+
+    if(currentIndex>=list.length){
+
+        currentIndex=0;
+
+        // 🔥 AUMENTA RONDA
+        let r=document.getElementById("round");
+        r.value=Number(r.value)+1;
+    }
+
+    activeId=list[currentIndex].id;
+
+    playTurnSound();
+    render();
+}
+
+/* eliminar */
+function del(id){
+    if(!confirm("Eliminar?")) return;
+    data=data.filter(x=>x.id!==id);
+    render();
+}
+
+/* reset */
+function resetAll(){
+    if(!confirm("Borrar todo?")) return;
+    if(!confirm("Última confirmación")) return;
+    data=[];
+    activeId=null;
+    localStorage.clear();
+    render();
+}
+
+/* pantalla grande */
+function toggleBig(){
+    document.body.classList.toggle("big");
+}
+
+/* sonido toggle */
+function toggleSound(){
+    soundOn=!soundOn;
+    saveState();
+    updateSoundBtn();
+}
+
+function updateSoundBtn(){
+    const btn=document.getElementById("soundBtn");
+    btn.className = soundOn ? "soundBtn on" : "soundBtn";
+    btn.textContent = soundOn ? "🔊 Sonido ON" : "🔇 Sonido OFF";
+}
+
+/* teclado */
+document.addEventListener("keydown",e=>{
+    if(e.code==="Space"){
+        e.preventDefault();
+        nextTurn();
+    }
+});
+
+render();
+
+</script>
+
+</body>
+</html>
