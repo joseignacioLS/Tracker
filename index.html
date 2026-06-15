@@ -25,7 +25,7 @@ body{
 
 body.big{ font-size:24px; }
 
-h1{text-align:center;}
+h1{ text-align:center; }
 
 .toolbar{
     display:flex;
@@ -52,21 +52,13 @@ button{
 table{
     width:100%;
     border-collapse:collapse;
-    background:#2a2a2a;
+    background:var(--panel);
 }
 
 th{
     background:#111;
     padding:12px;
     text-align:left;
-}
-
-tr{
-    cursor:grab;
-}
-
-tr.dragging{
-    opacity:0.5;
 }
 
 td{
@@ -84,6 +76,7 @@ td{
     box-shadow:0 0 15px rgba(212,175,55,.8);
 }
 
+/* inputs */
 .edit{
     background:transparent;
     border:none;
@@ -93,10 +86,12 @@ td{
     text-align:center;
 }
 
+/* layout PC */
 .info{
     display:flex;
     justify-content:space-between;
     align-items:center;
+    gap:10px;
 }
 
 .leftInfo{
@@ -108,6 +103,7 @@ td{
 
 .rightInfo{
     margin-left:auto;
+    font-weight:bold;
 }
 
 .hpbar{
@@ -133,6 +129,73 @@ td{
     cursor:pointer;
 }
 
+.cond{
+    background:#555;
+    padding:2px 6px;
+    border-radius:6px;
+    font-size:0.8em;
+    cursor:pointer;
+}
+
+/* 🔥 MOBILE: modo tarjetas */
+@media (max-width: 768px){
+
+    body{
+        padding:10px;
+        font-size:16px;
+    }
+
+    table{
+        display:block;
+        overflow-x:hidden;
+    }
+
+    tr{
+        display:block;
+        background:#2a2a2a;
+        margin-bottom:10px;
+        border-radius:10px;
+        padding:10px;
+    }
+
+    td{
+        display:block;
+        border:none;
+        padding:6px 0;
+    }
+
+    .info{
+        display:block;
+    }
+
+    .leftInfo{
+        display:flex;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:6px;
+    }
+
+    .rightInfo{
+        text-align:right;
+        margin-top:8px;
+    }
+
+    .hpbar{
+        width:100%;
+        margin-top:6px;
+    }
+
+    .edit{
+        font-size:16px;
+        width:60px;
+    }
+
+    .deleteBtn{
+        width:100%;
+        margin-top:10px;
+    }
+}
+
 </style>
 </head>
 
@@ -148,6 +211,7 @@ td{
 
 <button class="btn-next" onclick="nextTurn()">⏭ Turno</button>
 <button class="btn-reset" onclick="resetAll()">🗑 Reset</button>
+<button class="btn-ui" onclick="toggleBig()">🖥 Pantalla</button>
 
 </div>
 
@@ -174,20 +238,16 @@ onchange="save()">
 let data = JSON.parse(localStorage.getItem("it_data")) || [];
 let activeId = localStorage.getItem("it_active") || null;
 
-let dragId = null;
-
 function save(){
     localStorage.setItem("it_data",JSON.stringify(data));
     localStorage.setItem("it_active",activeId);
     localStorage.setItem("it_round",document.getElementById("round").value);
 }
 
-/* SORT por iniciativa */
 function sorted(){
     return [...data].sort((a,b)=>b.init-a.init);
 }
 
-/* RENDER */
 function render(){
 
     document.getElementById("round").value =
@@ -200,11 +260,10 @@ function render(){
 
     for(let c of list){
 
-        body.innerHTML += `
-<tr draggable="true"
-data-id="${c.id}"
-class="${c.type} ${c.id===activeId?'active':''}">
+        if(!c.conditions) c.conditions=[];
 
+        body.innerHTML += `
+<tr class="${c.type} ${c.id===activeId?'active':''}">
 <td>
 <input class="edit"
 value="${c.name}"
@@ -239,43 +298,43 @@ style="width:${(c.hp/c.maxhp)*100}%"></div>
 🪽 <input class="edit" style="width:50px;text-align:right"
 value="${c.init}"
 onchange="edit('${c.id}','init',this.value)">
+
 </div>
 
-<button class="deleteBtn"
-onclick="del('${c.id}')">❌</button>
+<button class="deleteBtn" onclick="del('${c.id}')">❌</button>
 
 </td>
 </tr>`;
     }
 
-    addDragEvents();
     save();
 }
 
-/* EDIT */
+function add(type){
+
+let name=prompt("Nombre:");
+if(!name)return;
+
+data.push({
+id:crypto.randomUUID(),
+type,
+name,
+init:+prompt("Iniciativa:",0),
+ac:+prompt("CA:",10),
+hp:+prompt("Vida:",10),
+maxhp:+prompt("Max:",10),
+conditions:[]
+});
+
+render();
+}
+
 function edit(id,f,v){
 let c=data.find(x=>x.id===id);
 c[f]=f==="name"?v:+v;
 render();
 }
 
-/* ADD */
-function add(type){
-
-data.push({
-id:crypto.randomUUID(),
-type,
-name:prompt("Nombre:"),
-init:+prompt("Iniciativa:",0),
-ac:+prompt("CA:",10),
-hp:+prompt("Vida:",10),
-maxhp:+prompt("Max:",10)
-});
-
-render();
-}
-
-/* TURN */
 function nextTurn(){
 
 let list=sorted();
@@ -293,14 +352,12 @@ activeId=list[i].id;
 render();
 }
 
-/* DELETE */
 function del(id){
 if(!confirm("Eliminar?"))return;
 data=data.filter(x=>x.id!==id);
 render();
 }
 
-/* RESET */
 function resetAll(){
 if(!confirm("Borrar todo?"))return;
 if(!confirm("Última confirmación"))return;
@@ -310,42 +367,12 @@ localStorage.clear();
 render();
 }
 
-/* DRAG & DROP */
-function addDragEvents(){
-
-const rows=document.querySelectorAll("tr[draggable=true]");
-
-rows.forEach(row=>{
-
-row.addEventListener("dragstart",e=>{
-dragId=row.dataset.id;
-row.classList.add("dragging");
-});
-
-row.addEventListener("dragend",e=>{
-row.classList.remove("dragging");
-dragId=null;
-save();
-});
-
-row.addEventListener("dragover",e=>{
+document.addEventListener("keydown",e=>{
+if(e.code==="Space"){
 e.preventDefault();
-
-const targetId=row.dataset.id;
-
-if(dragId===targetId) return;
-
-const fromIndex=data.findIndex(x=>x.id===dragId);
-const toIndex=data.findIndex(x=>x.id===targetId);
-
-const moved=data.splice(fromIndex,1)[0];
-data.splice(toIndex,0,moved);
-
-render();
-});
-
-});
+nextTurn();
 }
+});
 
 render();
 
