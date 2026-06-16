@@ -1,0 +1,276 @@
+:root {
+    --bg: #1b1b1b;
+    --panel: #2a2a2a;
+    --text: #fff;
+    --gold: #d4af37;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+
+body {
+    margin: 0;
+    padding: 20px;
+
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Segoe UI, Arial, sans-serif;
+    font-size: 18px;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+    gap: 16px;
+}
+
+header {
+
+    h1 {
+        text-align: center;
+    }
+
+    .toolbar {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+    }
+
+    button {
+        border: none;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-pc {
+        background: #234f8c;
+        color: white;
+    }
+
+    .btn-npc {
+        background: #2f6f45;
+        color: white;
+    }
+
+    .btn-enemy {
+        background: #8b2f2f;
+        color: white;
+    }
+
+    .btn-next {
+        background: #1565c0;
+        color: white;
+    }
+}
+
+main {
+    width: 100%;
+    overflow-y: auto;
+    padding-bottom: 64px;
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--panel);
+    }
+
+    th {
+        background: #111;
+        padding: 12px;
+        text-align: left;
+        width: 0px;
+    }
+
+    td {
+        padding: 10px;
+        border-top: 1px solid #444;
+        max-width: 100%;
+        white-space: nowrap;
+
+        input {
+            field-sizing: content;
+            text-decoration: underline;
+        }
+    }
+}
+
+.wrapper-reset {
+    position: fixed;
+    left: 8px;
+    bottom: 8px;
+
+    button {
+        border: none;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-reset {
+        background: #b71c1c;
+        color: white;
+    }
+}
+
+
+.pc {
+    background: #234f8c;
+}
+
+.npc {
+    background: #2f6f45;
+}
+
+.enemy {
+    background: #8b2f2f;
+}
+
+.active {
+    outline: 6px solid var(--gold);
+    outline-offset: -3px;
+    box-shadow: 0 0 15px rgba(212, 175, 55, .8);
+
+    animation: turnFlash 0.6s ease forwards;
+}
+
+/* inputs */
+.edit {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: inherit;
+    outline: none;
+    text-align: center;
+}
+
+/* layout */
+.info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.leftInfo {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.rightInfo {
+    margin-left: auto;
+    font-weight: bold;
+}
+
+.hpbar {
+    height: 6px;
+    width: 70px;
+    background: #333;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.hpfill {
+    height: 100%;
+    background: #3ddc6b;
+}
+
+/* botones daño */
+.hpControls {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    margin-left: 6px;
+}
+
+.hpBtn {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: white;
+}
+
+.hpMinus {
+    background: #b71c1c;
+}
+
+.hpPlus {
+    background: #2e7d32;
+}
+
+.deleteBtn {
+    margin-left: 10px;
+    background: #b71c1c;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* muertos */
+.dead {
+    opacity: 0.5;
+    filter: grayscale(1);
+}
+
+/* condiciones */
+.condBox {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    margin-left: 6px;
+}
+
+.condTag {
+    background: #555;
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.condAddBtn {
+    background: #444;
+    border: none;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+/* turno animación */
+@keyframes turnFlash {
+    0% {
+        box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+    }
+
+    50% {
+        box-shadow: 0 0 25px rgba(212, 175, 55, 0.9);
+    }
+
+    100% {
+        box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+    }
+}
